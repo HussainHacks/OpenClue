@@ -134,14 +134,29 @@ function findFreePort(): Promise<number> {
   });
 }
 
+function resolvePythonExecutable(backendDir: string): string {
+  const winCandidate = path.join(backendDir, '.venv', 'Scripts', 'python.exe');
+  const unixCandidate = path.join(backendDir, '.venv', 'bin', 'python');
+  const candidates =
+    process.platform === 'win32'
+      ? [winCandidate, unixCandidate]
+      : [unixCandidate, winCandidate];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return process.platform === 'win32' ? 'python' : 'python3';
+}
+
 async function startPythonBackend(): Promise<void> {
   backendPort = await findFreePort();
   const backendDir = isDev
     ? path.join(app.getAppPath(), 'backend')
     : path.join(process.resourcesPath, 'backend');
 
-  const venvPython = path.join(backendDir, '.venv', 'Scripts', 'python.exe');
-  const pythonCmd = fs.existsSync(venvPython) ? venvPython : 'python';
+  const pythonCmd = resolvePythonExecutable(backendDir);
 
   backendProcess = spawn(pythonCmd, ['main.py'], {
     cwd: backendDir,
