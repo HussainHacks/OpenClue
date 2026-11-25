@@ -98,6 +98,7 @@ export interface AudioDevicesResponse {
   microphones: AudioDevice[];
   loopback_devices: AudioDevice[];
   system_audio_supported: boolean;
+  system_audio_reason?: string;
   platform: string;
 }
 

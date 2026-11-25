@@ -59,11 +59,11 @@ export const AudioSettingsScreen: React.FC = () => {
 
         <div className="flex items-center justify-between py-2 border-t border-[var(--border-subtle)]">
           <div>
-            <div className="font-semibold">System Audio Capture (WASAPI Loopback)</div>
+            <div className="font-semibold">System Audio Capture</div>
             <div className="text-[11px] text-[var(--text-muted)]">
               {devices?.system_audio_supported
-                ? `Supported on Windows (${devices.loopback_devices.length} loopback endpoints detected).`
-                : 'System audio loopback is not supported on this host.'}
+                ? `Supported (${devices.loopback_devices.length} loopback/monitor endpoint(s) detected).`
+                : devices?.system_audio_reason || 'System audio loopback is not supported on this host.'}
             </div>
           </div>
           <input

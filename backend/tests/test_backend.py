@@ -78,6 +78,34 @@ def test_real_audio_device_enumeration() -> None:
     assert "microphones" in devices
     assert isinstance(devices["microphones"], list)
     assert "system_audio_supported" in devices
+    assert "system_audio_reason" in devices
+
+
+def test_cross_platform_audio_loopback_detection(monkeypatch) -> None:
+    import audio.engine as audio_mod
+
+    fake_devs = [
+        {"name": "Built-in Mic", "hostapi": 0, "max_input_channels": 2, "default_samplerate": 48000},
+        {"name": "Monitor of Built-in Audio Analog Stereo", "hostapi": 0, "max_input_channels": 2, "default_samplerate": 48000},
+    ]
+    monkeypatch.setattr(audio_mod.sd, "query_devices", lambda: fake_devs)
+    monkeypatch.setattr(audio_mod.sd, "query_hostapis", lambda: [{"name": "ALSA"}])
+
+    monkeypatch.setattr(audio_mod.sys, "platform", "linux")
+    res_linux = audio_mod.list_audio_devices()
+    assert res_linux["system_audio_supported"] is True
+    assert len(res_linux["loopback_devices"]) == 1
+    assert "Monitor" in res_linux["loopback_devices"][0]["name"]
+
+    monkeypatch.setattr(audio_mod.sys, "platform", "darwin")
+    res_mac_no_bh = audio_mod.list_audio_devices()
+    assert res_mac_no_bh["system_audio_supported"] is False
+    assert "BlackHole" in res_mac_no_bh["system_audio_reason"]
+
+    fake_devs.append({"name": "BlackHole 2ch", "hostapi": 0, "max_input_channels": 2, "default_samplerate": 48000})
+    res_mac_bh = audio_mod.list_audio_devices()
+    assert res_mac_bh["system_audio_supported"] is True
+    assert res_mac_bh["loopback_devices"][0]["name"] == "BlackHole 2ch"
 
 
 def test_real_screen_capture_and_ocr() -> None:

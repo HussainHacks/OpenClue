@@ -54,6 +54,8 @@ def list_audio_devices() -> dict[str, Any]:
 
     loopback_supported = False
     loopback_devices: list[dict[str, Any]] = []
+    system_audio_reason = ""
+
     if sys.platform == "win32":
         try:
             import pyaudiowpatch as pyaudio  # type: ignore
@@ -74,15 +76,40 @@ def list_audio_devices() -> dict[str, Any]:
                             and pa.get_device_info_by_index(default_out_idx)["name"] in lb["name"],
                         }
                     )
+                if not loopback_devices:
+                    loopback_supported = False
+                    system_audio_reason = "No Windows WASAPI loopback devices found."
             finally:
                 pa.terminate()
         except Exception as exc:
             logger.warning("WASAPI loopback unavailable: %s", exc)
+            system_audio_reason = f"WASAPI loopback unavailable: {exc}"
+    elif sys.platform == "darwin":
+        for dev in microphones:
+            if "blackhole" in dev["name"].lower():
+                loopback_devices.append({**dev, "is_default": len(loopback_devices) == 0})
+        if loopback_devices:
+            loopback_supported = True
+        else:
+            system_audio_reason = (
+                "macOS has no built-in system audio loopback. Install BlackHole "
+                "(e.g., `brew install blackhole-2ch`) and select it in Audio MIDI Setup."
+            )
+    else:
+        # Linux / POSIX: PulseAudio & PipeWire expose output monitors as input devices with 'monitor' in the name
+        for dev in microphones:
+            if "monitor" in dev["name"].lower():
+                loopback_devices.append({**dev, "is_default": len(loopback_devices) == 0})
+        if loopback_devices:
+            loopback_supported = True
+        else:
+            system_audio_reason = "No PulseAudio or PipeWire monitor source detected."
 
     return {
         "microphones": microphones,
         "loopback_devices": loopback_devices,
         "system_audio_supported": loopback_supported,
+        "system_audio_reason": system_audio_reason,
         "platform": sys.platform,
     }
 
@@ -195,6 +222,7 @@ class AudioEngine:
         self._start_monotonic = 0.0
 
         self._mic_stream: sd.InputStream | None = None
+        self._sys_stream: sd.InputStream | None = None
         self._loopback_thread: threading.Thread | None = None
         self._worker_thread: threading.Thread | None = None
         self._audio_queue: queue.Queue[tuple[str, np.ndarray, int]] = queue.Queue(maxsize=256)
@@ -260,10 +288,13 @@ class AudioEngine:
             self._running = False
             raise RuntimeError(f"Microphone capture failed: {exc}") from exc
 
-        # Start Windows WASAPI loopback stream if requested & supported
-        if capture_system_audio and sys.platform == "win32":
-            self._loopback_thread = threading.Thread(target=self._run_wasapi_loopback, daemon=True)
-            self._loopback_thread.start()
+        # Start system audio loopback if requested & supported
+        if capture_system_audio:
+            if sys.platform == "win32":
+                self._loopback_thread = threading.Thread(target=self._run_wasapi_loopback, daemon=True)
+                self._loopback_thread.start()
+            else:
+                self._start_sounddevice_system_stream()
 
         self._worker_thread = threading.Thread(target=self._process_loop, daemon=True)
         self._worker_thread.start()
@@ -291,6 +322,14 @@ class AudioEngine:
                 pass
             self._mic_stream = None
 
+        if self._sys_stream is not None:
+            try:
+                self._sys_stream.stop()
+                self._sys_stream.close()
+            except Exception:
+                pass
+            self._sys_stream = None
+
         if self._worker_thread is not None and self._worker_thread.is_alive():
             self._worker_thread.join(timeout=1.5)
         if self._loopback_thread is not None and self._loopback_thread.is_alive():
@@ -310,6 +349,39 @@ class AudioEngine:
         self._mic_level = 0.0
         self._sys_level = 0.0
         self._session_id = None
+
+    def _start_sounddevice_system_stream(self) -> None:
+        """Open a PulseAudio/PipeWire monitor (Linux) or BlackHole (macOS) input stream for system audio."""
+        try:
+            devices_info = list_audio_devices()
+            loopbacks = devices_info.get("loopback_devices", [])
+            if not loopbacks:
+                logger.info("System audio capture skipped: %s", devices_info.get("system_audio_reason", "unavailable"))
+                return
+            target = loopbacks[0]
+            sys_rate = int(target.get("sample_rate", 44100))
+            dev_id = int(target["id"])
+
+            def sys_callback(indata: np.ndarray, frames: int, time_info: Any, status_flags: Any) -> None:
+                if not self._running or self._paused:
+                    return
+                mono = indata[:, 0].copy() if indata.ndim > 1 else indata.copy()
+                try:
+                    self._audio_queue.put_nowait(("system", mono, sys_rate))
+                except queue.Full:
+                    pass
+
+            self._sys_stream = sd.InputStream(
+                device=dev_id,
+                channels=1,
+                samplerate=sys_rate,
+                dtype="float32",
+                blocksize=int(sys_rate * 0.08),
+                callback=sys_callback,
+            )
+            self._sys_stream.start()
+        except Exception as exc:
+            logger.warning("Non-Windows system audio stream failed to start: %s", exc)
 
     def _run_wasapi_loopback(self) -> None:
         try:
