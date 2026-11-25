@@ -66,7 +66,12 @@ export const api = {
   stopAudio: () => request('/audio/stop', { method: 'POST' }),
 
   getScreenSources: () =>
-    request<{ monitors: ScreenSourceMonitor[]; windows: ScreenSourceWindow[] }>('/screen/sources'),
+    request<{
+      monitors: ScreenSourceMonitor[];
+      windows: ScreenSourceWindow[];
+      window_listing_supported?: boolean;
+      window_listing_reason?: string;
+    }>('/screen/sources'),
   captureScreen: (monitor_index: number, window_title: string) =>
     request<ScreenCaptureResult>('/screen/capture', {
       method: 'POST',

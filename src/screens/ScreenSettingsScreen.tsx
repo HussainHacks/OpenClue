@@ -8,6 +8,7 @@ export const ScreenSettingsScreen: React.FC = () => {
   const { settings, updateSettings, latestScreen, captureScreenNow, privacyStatus, setPrivacyMode } = useAppStore();
   const [monitors, setMonitors] = useState<ScreenSourceMonitor[]>([]);
   const [windows, setWindows] = useState<ScreenSourceWindow[]>([]);
+  const [windowReason, setWindowReason] = useState('');
   const [testing, setTesting] = useState(false);
 
   const loadSources = async () => {
@@ -15,6 +16,7 @@ export const ScreenSettingsScreen: React.FC = () => {
       const res = await api.getScreenSources();
       setMonitors(res.monitors);
       setWindows(res.windows);
+      setWindowReason(res.window_listing_reason || '');
     } catch {
       // ignore
     }
@@ -124,6 +126,7 @@ export const ScreenSettingsScreen: React.FC = () => {
                 </option>
               ))}
             </select>
+            {windowReason && <p className="text-[11px] text-[var(--text-muted)] mt-1">{windowReason}</p>}
           </div>
         </div>
 

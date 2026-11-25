@@ -4,6 +4,9 @@ import base64
 import ctypes
 import io
 import logging
+import os
+import shutil
+import subprocess
 import sys
 import threading
 from datetime import datetime, timezone
@@ -68,6 +71,124 @@ def _enum_windows_win32() -> list[dict[str, Any]]:
     return windows
 
 
+def _enum_windows_macos() -> tuple[list[dict[str, Any]], bool, str]:
+    """Enumerate visible on-screen windows on macOS via Quartz CGWindowListCopyWindowInfo."""
+    try:
+        import Quartz  # type: ignore
+    except Exception as exc:
+        return [], False, f"macOS window listing unavailable (Quartz not installed: {exc}). Monitors only."
+
+    try:
+        opts = Quartz.kCGWindowListOptionOnScreenOnly | Quartz.kCGWindowListExcludeDesktopElements
+        raw_list = Quartz.CGWindowListCopyWindowInfo(opts, Quartz.kCGNullWindowID) or []
+        windows: list[dict[str, Any]] = []
+        for entry in raw_list:
+            owner = str(entry.get("kCGWindowOwnerName", "") or "")
+            name = str(entry.get("kCGWindowName", "") or "")
+            title = f"{owner} - {name}".strip(" -") if name and owner else (name or owner)
+            if not title or title.startswith("OpenClue"):
+                continue
+            bounds = entry.get("kCGWindowBounds", {}) or {}
+            width = int(bounds.get("Width", 0))
+            height = int(bounds.get("Height", 0))
+            if width < 120 or height < 80:
+                continue
+            windows.append(
+                {
+                    "hwnd": int(entry.get("kCGWindowNumber", 0)),
+                    "title": title,
+                    "bounds": {
+                        "left": int(bounds.get("X", 0)),
+                        "top": int(bounds.get("Y", 0)),
+                        "width": width,
+                        "height": height,
+                    },
+                }
+            )
+        return windows, True, ""
+    except Exception as exc:
+        return [], False, f"macOS window listing failed ({exc}). Monitors only."
+
+
+def _enum_windows_linux() -> tuple[list[dict[str, Any]], bool, str]:
+    """Enumerate X11 windows on Linux via wmctrl or xprop when available."""
+    if not os.environ.get("DISPLAY"):
+        return [], False, "Window listing unavailable without an X11 DISPLAY (Wayland/headless). Monitors only."
+
+    if shutil.which("wmctrl"):
+        try:
+            proc = subprocess.run(["wmctrl", "-lG"], capture_output=True, text=True, timeout=3, check=False)
+            if proc.returncode == 0:
+                windows: list[dict[str, Any]] = []
+                for line in proc.stdout.splitlines():
+                    parts = line.split(None, 7)
+                    if len(parts) < 8:
+                        continue
+                    win_id_hex, _desk, x_s, y_s, w_s, h_s, _host, title = parts
+                    title = title.strip()
+                    if not title or title.startswith("OpenClue"):
+                        continue
+                    w, h = int(w_s), int(h_s)
+                    if w < 120 or h < 80:
+                        continue
+                    windows.append(
+                        {
+                            "hwnd": int(win_id_hex, 16),
+                            "title": title,
+                            "bounds": {"left": int(x_s), "top": int(y_s), "width": w, "height": h},
+                        }
+                    )
+                return windows, True, ""
+        except Exception as exc:
+            logger.debug("wmctrl failed: %s", exc)
+
+    if shutil.which("xprop"):
+        try:
+            proc = subprocess.run(
+                ["xprop", "-root", "_NET_CLIENT_LIST"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+                check=False,
+            )
+            if proc.returncode == 0 and "#" in proc.stdout:
+                ids = [tok.strip() for tok in proc.stdout.split("#", 1)[1].split(",") if tok.strip()]
+                windows = []
+                for wid in ids[:40]:
+                    info = subprocess.run(
+                        ["xprop", "-id", wid, "WM_NAME"],
+                        capture_output=True,
+                        text=True,
+                        timeout=1,
+                        check=False,
+                    )
+                    title = ""
+                    if "=" in info.stdout:
+                        title = info.stdout.split("=", 1)[1].strip().strip('"')
+                    if not title or title.startswith("OpenClue"):
+                        continue
+                    windows.append(
+                        {
+                            "hwnd": int(wid, 16),
+                            "title": title,
+                            "bounds": {"left": 0, "top": 0, "width": 0, "height": 0},
+                        }
+                    )
+                return windows, True, ""
+        except Exception as exc:
+            logger.debug("xprop failed: %s", exc)
+
+    return [], False, "Window listing requires wmctrl or xprop on X11 Linux. Monitors only."
+
+
+def _list_windows() -> tuple[list[dict[str, Any]], bool, str]:
+    if sys.platform == "win32":
+        return _enum_windows_win32(), True, ""
+    if sys.platform == "darwin":
+        return _enum_windows_macos()
+    return _enum_windows_linux()
+
+
 class ScreenContextEngine:
     """Explicit, user-controlled screen/window capture and local RapidOCR extraction."""
 
@@ -105,8 +226,13 @@ class ScreenContextEngine:
                         },
                     }
                 )
-        windows = _enum_windows_win32()
-        return {"monitors": monitors, "windows": windows}
+        windows, win_supported, win_reason = _list_windows()
+        return {
+            "monitors": monitors,
+            "windows": windows,
+            "window_listing_supported": win_supported,
+            "window_listing_reason": win_reason,
+        }
 
     def run_ocr_on_image(self, img: Image.Image, source_label: str = "Image") -> dict[str, Any]:
         """Run local RapidOCR on a PIL Image and return structured OCR + thumbnail."""
@@ -159,9 +285,11 @@ class ScreenContextEngine:
         source_label = f"Display {monitor_index}"
 
         if window_title:
-            for win in _enum_windows_win32():
+            windows, _, _ = _list_windows()
+            for win in windows:
                 if win["title"] == window_title or window_title.lower() in win["title"].lower():
-                    region = win["bounds"]
+                    if win["bounds"]["width"] >= 120 and win["bounds"]["height"] >= 80:
+                        region = win["bounds"]
                     source_label = win["title"]
                     break
 

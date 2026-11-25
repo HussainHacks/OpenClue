@@ -131,6 +131,23 @@ def test_real_screen_capture_and_ocr() -> None:
         pass
 
 
+def test_cross_platform_window_listing_fallbacks(monkeypatch) -> None:
+    import screen.capture as cap_mod
+
+    monkeypatch.setattr(cap_mod.sys, "platform", "linux")
+    monkeypatch.delenv("DISPLAY", raising=False)
+    wins, supported, reason = cap_mod._list_windows()
+    assert wins == []
+    assert supported is False
+    assert "Monitors only" in reason
+
+    monkeypatch.setattr(cap_mod.sys, "platform", "darwin")
+    wins_mac, sup_mac, reason_mac = cap_mod._list_windows()
+    assert wins_mac == []
+    assert sup_mac is False
+    assert "Monitors only" in reason_mac
+
+
 def test_context_assembly_and_summary_fallback() -> None:
     prompt = build_system_prompt(
         {"system_instructions": "Base", "response_length": "concise", "response_style": "technical"},
