@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+backend/.venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Build outputs
+dist/
+dist-electron/
+release/
+build/
+*.tsbuildinfo
+
+# Local user data, databases, logs, and secrets
+.env
+.env.*
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.log
+*.pem
+*.key
+*.pfx
+vault.bin
+user_data/
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

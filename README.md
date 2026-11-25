@@ -1,0 +1,94 @@
+# OpenClue
+
+**OpenClue** is an open-source, local-first desktop AI assistant for live meetings, technical interviews, presentations, and research sessions.
+
+Built with **Electron, React, TypeScript, Tailwind CSS**, and a local **Python FastAPI** AI & media engine, OpenClue captures your microphone and system audio, transcribes in real time with **Faster-Whisper**, reads your selected screen or window via **RapidOCR** when explicitly enabled, and streams context-aware answers from **Ollama (local)**, **OpenAI**, **Anthropic**, or **Google Gemini**.
+
+## Key Features
+
+- **Real-Time Audio & Transcription**:
+  - Microphone selection (`sounddevice`) + Windows WASAPI system audio loopback (`pyaudiowpatch`).
+  - Live audio level meters, energy-based VAD, noise gate, pause/resume, and speaker attribution (`You` vs `System`).
+  - Local `faster-whisper` CPU inference with partial & final timestamped transcripts.
+- **Explicit Screen Context (OCR)**:
+  - Disabled by default; enabled only by user permission.
+  - Monitor and Win32 window selection with on-demand or interval capture via `mss` + `rapidocr-onnxruntime`.
+- **Screen-Sharing Privacy Mode**:
+  - Keeps private assistant notes in a separate Floating Overlay window excluded from meeting screen shares via OS-approved `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)` on Windows (`setContentProtection`), with clear status indicators.
+- **Floating Desktop Assistant**:
+  - Always-on-top, draggable, resizable, collapsible overlay with global shortcuts (`Ctrl+Shift+Space`, `Ctrl+Enter`, `Ctrl+Shift+M`, `Ctrl+Shift+P`).
+- **Context-Aware AI & Meeting Intelligence**:
+  - Combines live transcript, screen OCR, custom instructions, professional background, reference documents, and chat history.
+  - Generates structured summaries, key discussion points, decisions, action items, and questions raised.
+  - Exports sessions to **Markdown**, **TXT**, and **PDF**.
+- **Privacy-First Storage**:
+  - Local SQLite database, OS-encrypted API key vault (`safeStorage` / Windows DPAPI), configurable retention, and one-click data deletion.
+
+## Installation & Windows Setup
+
+### Prerequisites
+- **Windows 10 (2004+) or Windows 11**
+- **Node.js 22+**
+- **uv** (`https://docs.astral.sh/uv/`) — manages Python 3.12 automatically
+- *(Optional for local LLM)* **Ollama** (`https://ollama.com`)
+
+### Setup
+
+```powershell
+git clone https://github.com/HussainHacks/OpenClue.git
+cd OpenClue
+
+# Install desktop & frontend dependencies
+npm install
+
+# Install Python 3.12 backend dependencies
+cd backend
+uv sync --python 3.12
+cd ..
+```
+
+### Development
+
+Terminal 1 (Vite UI):
+```powershell
+npm run dev
+```
+
+Terminal 2 (Build Electron & Launch):
+```powershell
+npm run build:electron
+npx electron .
+```
+
+### Production Build & Windows Packaging
+
+```powershell
+npm run build
+npm run package:win
+```
+
+Installers and portable executables are generated in `release/`.
+
+## Testing
+
+```powershell
+# Frontend component tests
+npm run test:ui
+
+# Backend unit & hardware/OCR/API tests
+cd backend
+uv run pytest -v
+```
+
+## Architecture & Documentation
+
+- [ARCHITECTURE.md](ARCHITECTURE.md) — System topology and component responsibilities.
+- [TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md) — Engineering rationale for Electron, Faster-Whisper, WASAPI loopback, and RapidOCR.
+- [LICENSE_AUDIT.md](LICENSE_AUDIT.md) — Dependency and model license inventory.
+- [ROADMAP.md](ROADMAP.md) — Completed phases and future milestones.
+- [SECURITY.md](SECURITY.md) — Local-first privacy and credential encryption details.
+- [CONTRIBUTING.md](CONTRIBUTING.md) — Contribution guidelines.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
