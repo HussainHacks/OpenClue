@@ -100,13 +100,22 @@ export const FloatingOverlayView: React.FC = () => {
 
         <div className="no-drag flex items-center gap-1">
           <button
-            onClick={() => setPrivacyMode(!privacyStatus.enabled)}
+            onClick={() => privacyStatus.supported && setPrivacyMode(!privacyStatus.enabled)}
+            disabled={!privacyStatus.supported}
             title={privacyStatus.mechanism}
             className={`p-1.5 rounded-md text-xs ${
-              privacyStatus.enabled ? 'text-emerald-400 hover:bg-emerald-500/15' : 'text-amber-400 hover:bg-amber-500/15'
+              !privacyStatus.supported
+                ? 'text-[var(--text-muted)] cursor-not-allowed'
+                : privacyStatus.enabled
+                  ? 'text-emerald-400 hover:bg-emerald-500/15'
+                  : 'text-amber-400 hover:bg-amber-500/15'
             }`}
           >
-            {privacyStatus.enabled ? <ShieldCheck className="w-3.5 h-3.5" /> : <ShieldAlert className="w-3.5 h-3.5" />}
+            {privacyStatus.supported && privacyStatus.enabled ? (
+              <ShieldCheck className="w-3.5 h-3.5" />
+            ) : (
+              <ShieldAlert className="w-3.5 h-3.5" />
+            )}
           </button>
           <button
             onClick={togglePin}

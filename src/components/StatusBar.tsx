@@ -90,14 +90,24 @@ export const StatusBar: React.FC = () => {
         {/* Privacy Mode Pill */}
         <span
           className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium border ${
-            privacyStatus.enabled
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
-              : 'bg-amber-500/10 text-amber-400 border-amber-500/25'
+            !privacyStatus.supported
+              ? 'bg-[var(--bg-elevated)] text-[var(--text-muted)] border-[var(--border-subtle)]'
+              : privacyStatus.enabled
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
+                : 'bg-amber-500/10 text-amber-400 border-amber-500/25'
           }`}
           title={privacyStatus.mechanism}
         >
-          {privacyStatus.enabled ? <ShieldCheck className="w-3.5 h-3.5" /> : <ShieldAlert className="w-3.5 h-3.5" />}
-          {privacyStatus.enabled ? 'Hidden in Screen Share' : 'Visible in Share'}
+          {privacyStatus.supported && privacyStatus.enabled ? (
+            <ShieldCheck className="w-3.5 h-3.5" />
+          ) : (
+            <ShieldAlert className="w-3.5 h-3.5" />
+          )}
+          {!privacyStatus.supported
+            ? 'Privacy Unsupported'
+            : privacyStatus.enabled
+              ? 'Hidden in Screen Share'
+              : 'Visible in Share'}
         </span>
 
         {/* Audio Transport Controls */}

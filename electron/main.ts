@@ -45,16 +45,19 @@ function getPrivacySupport(): { supported: boolean; mechanism: string } {
 
 function getPrivacyStatus() {
   const { supported, mechanism } = getPrivacySupport();
-  return { enabled: privacyModeEnabled, supported, mechanism };
+  return { enabled: supported && privacyModeEnabled, supported, mechanism };
 }
 
 function applyPrivacyMode(enabled: boolean) {
-  privacyModeEnabled = enabled;
-  if (overlayWindow && !overlayWindow.isDestroyed()) {
-    overlayWindow.setContentProtection(enabled);
-  }
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.setContentProtection(enabled);
+  const { supported } = getPrivacySupport();
+  privacyModeEnabled = supported ? enabled : false;
+  if (supported) {
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      overlayWindow.setContentProtection(privacyModeEnabled);
+    }
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.setContentProtection(privacyModeEnabled);
+    }
   }
   const status = getPrivacyStatus();
   mainWindow?.webContents.send('privacy-changed', status);

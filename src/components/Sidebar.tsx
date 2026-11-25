@@ -135,11 +135,14 @@ export const Sidebar: React.FC = () => {
       {/* Privacy & Onboarding Footer */}
       <div className="p-3 border-t border-[var(--border-subtle)] space-y-2">
         <button
-          onClick={() => setPrivacyMode(!privacyStatus.enabled)}
+          onClick={() => privacyStatus.supported && setPrivacyMode(!privacyStatus.enabled)}
+          disabled={!privacyStatus.supported}
           className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs border transition-colors ${
-            privacyStatus.enabled
-              ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
-              : 'bg-amber-500/10 border-amber-500/25 text-amber-400'
+            !privacyStatus.supported
+              ? 'bg-[var(--bg-elevated)] border-[var(--border-subtle)] text-[var(--text-muted)] cursor-not-allowed'
+              : privacyStatus.enabled
+                ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
+                : 'bg-amber-500/10 border-amber-500/25 text-amber-400'
           }`}
           title={privacyStatus.mechanism}
         >
@@ -148,7 +151,7 @@ export const Sidebar: React.FC = () => {
             Share Privacy
           </span>
           <span className="text-[10px] font-semibold uppercase">
-            {privacyStatus.enabled ? 'Protected' : 'Visible'}
+            {!privacyStatus.supported ? 'Unsupported' : privacyStatus.enabled ? 'Protected' : 'Visible'}
           </span>
         </button>
 

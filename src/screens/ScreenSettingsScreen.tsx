@@ -62,9 +62,10 @@ export const ScreenSettingsScreen: React.FC = () => {
           </div>
           <input
             type="checkbox"
-            checked={privacyStatus.enabled}
+            disabled={!privacyStatus.supported}
+            checked={privacyStatus.supported && privacyStatus.enabled}
             onChange={(e) => setPrivacyMode(e.target.checked)}
-            className="accent-emerald-500 w-4 h-4"
+            className="accent-emerald-500 w-4 h-4 disabled:opacity-40"
           />
         </div>
         <p className="text-[var(--text-secondary)] leading-relaxed">

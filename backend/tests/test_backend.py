@@ -148,6 +148,24 @@ def test_cross_platform_window_listing_fallbacks(monkeypatch) -> None:
     assert "Monitors only" in reason_mac
 
 
+def test_cross_platform_data_dir(monkeypatch, tmp_path: Path) -> None:
+    import config as cfg_mod
+
+    monkeypatch.delenv("OPENCLUE_DATA_DIR", raising=False)
+    monkeypatch.setattr(cfg_mod.Path, "home", lambda: tmp_path)
+
+    monkeypatch.setattr(cfg_mod.sys, "platform", "win32")
+    monkeypatch.setenv("APPDATA", str(tmp_path / "Roaming"))
+    assert cfg_mod.get_data_dir() == tmp_path / "Roaming" / "OpenClue"
+
+    monkeypatch.setattr(cfg_mod.sys, "platform", "darwin")
+    assert cfg_mod.get_data_dir() == tmp_path / "Library" / "Application Support" / "OpenClue"
+
+    monkeypatch.setattr(cfg_mod.sys, "platform", "linux")
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
+    assert cfg_mod.get_data_dir() == tmp_path / "xdg" / "OpenClue"
+
+
 def test_context_assembly_and_summary_fallback() -> None:
     prompt = build_system_prompt(
         {"system_instructions": "Base", "response_length": "concise", "response_style": "technical"},

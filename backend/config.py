@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 
@@ -9,9 +10,14 @@ def get_data_dir() -> Path:
     custom = os.environ.get("OPENCLUE_DATA_DIR")
     if custom:
         path = Path(custom)
+    elif sys.platform == "win32":
+        base = os.environ.get("APPDATA") or str(Path.home() / "AppData" / "Roaming")
+        path = Path(base) / "OpenClue"
+    elif sys.platform == "darwin":
+        path = Path.home() / "Library" / "Application Support" / "OpenClue"
     else:
-        appdata = os.environ.get("APPDATA") or str(Path.home() / ".local" / "share")
-        path = Path(appdata) / "OpenClue"
+        base = os.environ.get("XDG_DATA_HOME") or str(Path.home() / ".local" / "share")
+        path = Path(base) / "OpenClue"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
