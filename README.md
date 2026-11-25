@@ -1,6 +1,6 @@
 # OpenClue
 
-**OpenClue** is an open-source, local-first desktop AI assistant for live meetings, technical interviews, presentations, and research sessions.
+**OpenClue** is a source-available, local-first desktop AI assistant for live meetings, technical interviews, presentations, and research sessions.
 
 Built with **Electron, React, TypeScript, Tailwind CSS**, and a local **Python FastAPI** AI & media engine, OpenClue captures your microphone and system audio, transcribes in real time with **Faster-Whisper**, reads your selected screen or window via **RapidOCR** when explicitly enabled, and streams context-aware answers from **Ollama (local)**, **OpenAI**, **Anthropic**, or **Google Gemini**.
 
@@ -91,4 +91,4 @@ uv run pytest -v
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+OpenClue is source available under the [Business Source License 1.1](LICENSE), licensor Syed Ahmed Hussain. It is free for personal and other non-commercial use; commercial use requires a separate license from the licensor. Each version converts to the Apache License, Version 2.0, on its change date (version 1.0.0: November 24, 2030).

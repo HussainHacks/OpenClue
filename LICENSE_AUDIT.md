@@ -1,10 +1,10 @@
 # License Audit
 
-OpenClue is distributed under the **MIT License**. Every runtime dependency has been audited for permissive license compatibility.
+OpenClue is distributed under the **Business Source License 1.1** (licensor: Syed Ahmed Hussain). Every runtime dependency has been audited for license compatibility with that distribution model.
 
 ## Desktop & Frontend Dependencies (Node.js / npm)
 
-| Package | Purpose | License | Compatible with MIT |
+| Package | Purpose | License | Compatible with BSL 1.1 |
 | --- | --- | --- | --- |
 | `electron` | Desktop shell, IPC, `safeStorage`, `setContentProtection` | MIT | Yes |
 | `react`, `react-dom` | UI framework | MIT | Yes |
@@ -18,7 +18,7 @@ OpenClue is distributed under the **MIT License**. Every runtime dependency has 
 
 ## Backend & AI Dependencies (Python / uv)
 
-| Package | Purpose | License | Compatible with MIT |
+| Package | Purpose | License | Compatible with BSL 1.1 |
 | --- | --- | --- | --- |
 | `fastapi` | Local REST & WebSocket API | MIT | Yes |
 | `uvicorn` | ASGI server | BSD-3-Clause | Yes |

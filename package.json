@@ -1,9 +1,9 @@
 {
   "name": "openclue",
   "version": "1.0.0",
-  "author": "OpenClue Contributors",
-  "license": "MIT",
-  "description": "Open-source, local-first desktop AI assistant for live meetings, research, and screen context.",
+  "author": "Syed Ahmed Hussain",
+  "license": "BUSL-1.1",
+  "description": "Source-available, local-first desktop AI assistant for live meetings, research, and screen context.",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
@@ -64,11 +64,15 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
