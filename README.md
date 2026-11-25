@@ -24,28 +24,58 @@ Built with **Electron, React, TypeScript, Tailwind CSS**, and a local **Python F
 - **Privacy-First Storage**:
   - Local SQLite database, OS-encrypted API key vault (`safeStorage` / Windows DPAPI), configurable retention, and one-click data deletion.
 
-## Installation & Windows Setup
+## Installation & Platform Setup
 
 ### Prerequisites
-- **Windows 10 (2004+) or Windows 11**
+- **Windows 10 (2004+) / Windows 11**, **macOS 12+**, or **Linux (Ubuntu/Debian)**
 - **Node.js 22+**
 - **uv** (`https://docs.astral.sh/uv/`) — manages Python 3.12 automatically
 - *(Optional for local LLM)* **Ollama** (`https://ollama.com`)
 
-### Setup
+### Windows
 
 ```powershell
 git clone https://github.com/HussainHacks/OpenClue.git
 cd OpenClue
 
-# Install desktop & frontend dependencies
 npm install
-
-# Install Python 3.12 backend dependencies
-cd backend
-uv sync --python 3.12
-cd ..
+cd backend && uv sync --python 3.12 && cd ..
 ```
+
+### macOS
+
+`sounddevice` requires PortAudio, and system audio capture requires a virtual loopback device such as BlackHole:
+
+```bash
+brew install portaudio
+# Optional: for system audio capture (macOS has no built-in loopback)
+brew install --cask blackhole-2ch
+
+git clone https://github.com/HussainHacks/OpenClue.git
+cd OpenClue
+
+npm install
+cd backend && uv sync --python 3.12 && cd ..
+```
+
+### Linux (Debian / Ubuntu)
+
+`sounddevice` requires `libportaudio2` (and `wmctrl` or `xprop` for optional X11 window listing):
+
+```bash
+sudo apt update && sudo apt install -y libportaudio2 wmctrl
+
+git clone https://github.com/HussainHacks/OpenClue.git
+cd OpenClue
+
+npm install
+cd backend && uv sync --python 3.12 && cd ..
+```
+
+> **Platform Notes:**
+> - **macOS System Audio:** macOS does not provide built-in system audio loopback; install **BlackHole** and route output through a Multi-Output Device if you want to capture system audio alongside your microphone.
+> - **Linux Screen-Sharing Privacy Mode:** OS-level capture exclusion (`setContentProtection`) is not supported on Linux and is reported as **Unsupported** in the UI. Keep private assistant notes in the separate Floating Overlay window and share only your target application window.
+> - **Linux Window Listing:** Uses `wmctrl` or `xprop` on X11; under pure Wayland or when those tools are absent, OpenClue falls back to monitor capture.
 
 ### Development
 
@@ -60,11 +90,13 @@ npm run build:electron
 npx electron .
 ```
 
-### Production Build & Windows Packaging
+### Production Build & Packaging
 
 ```powershell
 npm run build
-npm run package:win
+npm run package:win    # Windows NSIS installer & portable .exe
+npm run package:mac    # macOS DMG (x64 & arm64)
+npm run package:linux  # Linux AppImage (x64)
 ```
 
 Installers and portable executables are generated in `release/`.

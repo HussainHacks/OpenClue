@@ -11,7 +11,9 @@
     "build:electron": "tsc -p tsconfig.node.json",
     "build": "npm run build:ui && npm run build:electron",
     "test:ui": "vitest run",
-    "package:win": "npm run build && electron-builder --win --x64"
+    "package:win": "npm run build && electron-builder --win --x64",
+    "package:mac": "npm run build && electron-builder --mac --x64 --arm64",
+    "package:linux": "npm run build && electron-builder --linux --x64"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -79,6 +81,24 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ]
+    },
+    "linux": {
+      "category": "Utility",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        }
+      ]
     }
   }
 }
